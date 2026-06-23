@@ -1,0 +1,41 @@
+name: storage_assistant
+description: A Flutter project to manage storage items using NFC tags.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  nfc_manager: ^3.3.0
+  
+  # Database
+  sqflite: ^2.3.0
+  path: ^1.8.3
+  path_provider: ^2.1.1
+  
+  # UUID
+  uuid: ^4.2.1
+  
+  # Media
+  image_picker: ^1.0.4
+  image: ^4.1.3
+  video_player: ^2.7.0
+  video_compress: ^3.1.2
+  video_thumbnail: ^0.5.3
+  
+  # Permissions
+  permission_handler: ^11.1.0
+  
+  # Utils
+  intl: ^0.18.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true

@@ -1,0 +1,139 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+migrate_working_dir/
+*.bak
+*.tmp
+*.cache
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+*.idea/*
+!/.idea/runConfigurations/
+
+# VS Code related
+.vscode/
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/cspell.json
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+**.symlinks/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+/build/
+android/app/build/
+ios/Runner/build/
+linux/build/
+macos/build/
+windows/build/
+web/.dart_tool/
+web/build/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+/android/build/
+/android/key.properties
+
+# Xcode build artifacts
+ios/build/
+ios/Runner/DerivedData/
+ios/Runner.xcodeproj/xcuserdata/
+ios/Runner.xcworkspace/xcuserdata/
+ios/Pods/
+ios/Podfile.lock
+
+# macOS
+*.xcuserstate
+*.xccheckout
+*.moved-aside
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata/
+*.xcworkspace
+!*.xcworkspace/contents.xcworkspacedata
+
+# Windows
+windows/runner/Release/
+windows/runner/Debug/
+windows/flutter/ephemeral/
+*.exe
+*.pdb
+
+# Linux
+linux/runner/Release/
+linux/runner/Debug/
+linux/flutter/ephemeral/
+
+# Logs
+*.log
+logs/
+*.txt
+
+# Test coverage
+coverage/
+lcov.info
+*.lcov
+
+# Generated files
+*.g.dart
+*.freezed.dart
+*.gr.dart
+lib/generated_plugin_registrant.dart
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Certificate and keys
+*.p12
+*.keystore
+*.jks
+google-services.json
+GoogleService-Info.plist
+
+# Crashlytics
+crashlytics-build.properties
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+
+# CocoaPods
+ios/Pods/
+ios/Podfile.lock
