@@ -2,7 +2,6 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/tag_record.dart';
 import '../models/item_record.dart';
-import '../models/media_record.dart';
 
 class DatabaseService {
   static final DatabaseService _instance = DatabaseService._internal();
@@ -19,11 +18,17 @@ class DatabaseService {
 
   Future<Database> _initDatabase() async {
     String path = join(await getDatabasesPath(), 'storage_assistant.db');
-    return await openDatabase(
+    final db = await openDatabase(
       path,
       version: 1,
       onCreate: _onCreate,
     );
+    // SQLite 默认 foreign_keys=OFF，需显式开启才能让
+    // items 表上 "ON DELETE CASCADE" 生效。
+    // 该 PRAGMA 是 per-connection 的，每次打开连接都要执行。
+    await db.execute('PRAGMA foreign_keys = ON;');
+    _database = db;
+    return db;
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -51,16 +56,6 @@ class DatabaseService {
       )
     ''');
 
-    await db.execute('''
-      CREATE TABLE media (
-        id TEXT PRIMARY KEY,
-        filePath TEXT NOT NULL,
-        type INTEGER NOT NULL,
-        thumbnailPath TEXT,
-        createdAt TEXT NOT NULL
-      )
-    ''');
-
     await db.execute('CREATE INDEX idx_items_tagId ON items (tagId)');
     await db.execute('CREATE INDEX idx_tags_tagId ON tags (tagId)');
   }
@@ -79,17 +74,17 @@ class DatabaseService {
     return await db.update(
       'tags',
       tag.toMap(),
-      where: 'id = ?',
-      whereArgs: [tag.id],
+      where: 'tagId = ?',
+      whereArgs: [tag.tagId],
     );
   }
 
-  Future<int> deleteTag(String id) async {
+  Future<int> deleteTag(String tagId) async {
     final db = await database;
     return await db.delete(
       'tags',
-      where: 'id = ?',
-      whereArgs: [id],
+      where: 'tagId = ?',
+      whereArgs: [tagId],
     );
   }
 
@@ -165,41 +160,6 @@ class DatabaseService {
     final db = await database;
     final maps = await db.query('items', orderBy: 'updatedAt DESC');
     return maps.map((map) => ItemRecord.fromMap(map)).toList();
-  }
-
-  Future<int> insertMedia(MediaRecord media) async {
-    final db = await database;
-    return await db.insert(
-      'media',
-      media.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
-  }
-
-  Future<int> deleteMedia(String id) async {
-    final db = await database;
-    return await db.delete(
-      'media',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-  }
-
-  Future<MediaRecord?> getMediaById(String id) async {
-    final db = await database;
-    final maps = await db.query(
-      'media',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-    if (maps.isEmpty) return null;
-    return MediaRecord.fromMap(maps.first);
-  }
-
-  Future<List<MediaRecord>> getAllMedia() async {
-    final db = await database;
-    final maps = await db.query('media', orderBy: 'createdAt DESC');
-    return maps.map((map) => MediaRecord.fromMap(map)).toList();
   }
 
   Future<List<String>> getUsedMediaPaths() async {

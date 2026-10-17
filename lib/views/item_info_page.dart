@@ -4,13 +4,9 @@ import 'package:video_player/video_player.dart';
 import 'package:intl/intl.dart';
 import '../data/data_manager.dart';
 import '../models/item_record.dart';
-import '../services/nfc_service.dart';
 import '../services/media_service.dart';
 
 enum ItemInfoMode { add, view, edit, remove }
-
-// 滑动方向枚举
-enum SlideDirection { left, right, none }
 
 class ItemInfoPage extends StatefulWidget {
   final Map<String, dynamic>? itemData;
@@ -31,7 +27,6 @@ class ItemInfoPage extends StatefulWidget {
 class _ItemInfoPageState extends State<ItemInfoPage> {
   late ItemInfoMode _mode;
   final DataManager _dataManager = DataManager();
-  final NfcService _nfcService = NfcService();
   final MediaService _mediaService = MediaService();
   late TextEditingController _nameController;
   late TextEditingController _remarkController;
@@ -44,9 +39,11 @@ class _ItemInfoPageState extends State<ItemInfoPage> {
   List<Map<String, dynamic>> _items = [];
   int _currentIndex = 0;
 
+  // 当前展示的物品数据（滑动后会更新，用于编辑/删除操作）
+  Map<String, dynamic>? _currentItemData;
+
   // 新增：滑动动画相关
   double _slideOffset = 0.0;
-  SlideDirection _slideDirection = SlideDirection.none;
 
   @override
   void initState() {
@@ -58,6 +55,7 @@ class _ItemInfoPageState extends State<ItemInfoPage> {
         TextEditingController(text: widget.itemData?['remark'] ?? '');
     _imagePath = widget.itemData?['imagePath'];
     _videoPath = widget.itemData?['videoPath'];
+    _currentItemData = widget.itemData;
 
     // 加载物品列表并设置当前索引
     _loadItemsAndSetIndex();
@@ -90,17 +88,11 @@ class _ItemInfoPageState extends State<ItemInfoPage> {
   // 带滑动动画的切换到下一个物品
   void _nextItem() {
     if (_currentIndex < _items.length - 1) {
-      // 设置滑动方向
-      _slideDirection = SlideDirection.left;
       _slideOffset = 1.0; // 从右侧开始
-
-      // 更新内容
       setState(() {
         _currentIndex++;
         _updateUIWithItem(_items[_currentIndex]);
       });
-
-      // 执行滑动动画
       _animateSlide();
     }
   }
@@ -108,17 +100,11 @@ class _ItemInfoPageState extends State<ItemInfoPage> {
   // 带滑动动画的切换到上一个物品
   void _previousItem() {
     if (_currentIndex > 0) {
-      // 设置滑动方向
-      _slideDirection = SlideDirection.right;
       _slideOffset = -1.0; // 从左侧开始
-
-      // 更新内容
       setState(() {
         _currentIndex--;
         _updateUIWithItem(_items[_currentIndex]);
       });
-
-      // 执行滑动动画
       _animateSlide();
     }
   }
@@ -147,10 +133,8 @@ class _ItemInfoPageState extends State<ItemInfoPage> {
 
     animation.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        // 动画完成后重置状态
         setState(() {
           _slideOffset = 0.0;
-          _slideDirection = SlideDirection.none;
         });
         controller.dispose();
       }
@@ -161,6 +145,7 @@ class _ItemInfoPageState extends State<ItemInfoPage> {
 
   // 更新UI显示指定物品
   void _updateUIWithItem(Map<String, dynamic> item) {
+    _currentItemData = item;
     _nameController.text = item['itemName'] ?? '';
     _remarkController.text = item['remark'] ?? '';
     _imagePath = item['imagePath'];
@@ -172,8 +157,8 @@ class _ItemInfoPageState extends State<ItemInfoPage> {
   void _onDelete() async {
     if (_isOperating) return;
     String? itemId;
-    if (widget.itemData != null && widget.itemData!.containsKey('id')) {
-      itemId = widget.itemData!['id'];
+    if (_currentItemData != null && _currentItemData!.containsKey('id')) {
+      itemId = _currentItemData!['id'];
     }
     if (itemId != null) {
       _isOperating = true;
@@ -257,14 +242,14 @@ class _ItemInfoPageState extends State<ItemInfoPage> {
         print('创建物品成功');
       } else if (_mode == ItemInfoMode.edit) {
         print('编辑物品');
-        if (widget.itemData != null && widget.itemData!.containsKey('id')) {
+        if (_currentItemData != null && _currentItemData!.containsKey('id')) {
           // 将字符串转换为DateTime
-          final createdAt = widget.itemData!['createdAt'] is String
-              ? DateTime.parse(widget.itemData!['createdAt'])
-              : widget.itemData!['createdAt'];
+          final createdAt = _currentItemData!['createdAt'] is String
+              ? DateTime.parse(_currentItemData!['createdAt'])
+              : _currentItemData!['createdAt'];
 
           final itemRecord = ItemRecord(
-            id: widget.itemData!['id'],
+            id: _currentItemData!['id'],
             itemName: itemName,
             remark: _remarkController.text.trim(),
             imagePath: _imagePath,
@@ -339,11 +324,13 @@ class _ItemInfoPageState extends State<ItemInfoPage> {
       body: SafeArea(
         child: GestureDetector(
           onHorizontalDragEnd: (details) {
-            // 检测左右划动
-            if (details.primaryVelocity! < 0) {
+            // 检测左右划动（primaryVelocity 可能为 null，需兜底；
+            // 加速度阈值避免轻触误触发）
+            final velocity = details.primaryVelocity ?? 0.0;
+            if (velocity < -50) {
               // 左划：切换到下一个物品
               _nextItem();
-            } else if (details.primaryVelocity! > 0) {
+            } else if (velocity > 50) {
               // 右划：切换到上一个物品
               _previousItem();
             }
@@ -730,7 +717,7 @@ class _FullScreenVideoPageState extends State<_FullScreenVideoPage> {
                       if (_showControls)
                         Positioned.fill(
                           child: Container(
-                            color: Colors.black.withOpacity(0.3),
+                            color: Colors.black.withValues(alpha: 0.3),
                             child: Center(
                               child: IconButton(
                                 onPressed: () {

@@ -89,6 +89,7 @@ class DataManager {
   Future<TagRecord> createTag(String tagId, String tagName) async {
     final now = DateTime.now();
     final tag = TagRecord(
+      id: tagId,
       tagId: tagId,
       tagName: tagName,
       createdAt: now,
@@ -156,14 +157,24 @@ class DataManager {
 
   Future<List<ItemRecord>> getItemsByTag(String tagId) async {
     final items = await _db.getItemsByTagId(tagId);
+    final updated = <ItemRecord>[];
     for (var item in items) {
       if (item.id == null || item.id!.isEmpty) {
         final newId = _uuid.v4();
         final updatedItem = item.copyWith(id: newId);
-        await _db.updateItem(updatedItem);
+        updated.add(updatedItem);
+      } else {
+        updated.add(item);
       }
     }
-    return await _db.getItemsByTagId(tagId);
+    if (updated.isNotEmpty) {
+      for (var i = 0; i < items.length; i++) {
+        if (updated[i].id != items[i].id) {
+          await _db.updateItem(updated[i]);
+        }
+      }
+    }
+    return updated;
   }
 
   Map<String, dynamic> itemToMap(ItemRecord item) {
@@ -248,14 +259,12 @@ class DataManager {
   }
 
   Future<void> clearAllData() async {
-    final items = await _db.getAllItems();
-    for (var item in items) {
-      await deleteItem(item.id!);
-    }
-    final tags = await _db.getAllTags();
-    for (var tag in tags) {
-      await _db.deleteTag(tag.id!);
-    }
+    final db = await _db.database;
+    await db.transaction((tx) async {
+      // 一次性清空两张表（媒体文件稍后在 cleanOrphanedMedia 中清理）
+      await tx.rawDelete('DELETE FROM items');
+      await tx.rawDelete('DELETE FROM tags');
+    });
     await cleanOrphanedMedia();
   }
 }

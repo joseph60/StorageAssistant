@@ -23,9 +23,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   ValueNotifier<dynamic> result = ValueNotifier(null);
   ValueNotifier<String> status = ValueNotifier('等待操作');
-  final ScrollController _scrollController = ScrollController();
   int? _selectedIndex;
-  String? _currentRecordData;
   bool _showTagInfo = false;
   String? _currentTagId;
   String? _currentTagName;
@@ -196,7 +194,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
     setState(() {
       _selectedIndex = index;
-      _currentRecordData = itemData['itemName'];
     });
 
     Navigator.push(
@@ -418,7 +415,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         }
 
         return ListView.builder(
-          controller: _scrollController,
           itemCount: items.length,
           itemBuilder: (context, index) {
             final itemData = items[index];

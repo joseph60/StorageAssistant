@@ -1,5 +1,8 @@
 allprojects {
     repositories {
+        maven("https://maven.aliyun.com/repository/google")
+        maven("https://maven.aliyun.com/repository/central")
+        maven("https://repo.huaweicloud.com/repository/maven/")
         google()
         mavenCentral()
     }

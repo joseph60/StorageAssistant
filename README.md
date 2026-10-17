@@ -78,13 +78,15 @@ lib/
 ## 📋 系统要求
 
 ### 开发环境
-- Flutter SDK 3.0+
-- Dart 2.17+
+- Flutter SDK 3.47（stable）、Dart 3.0+
+- **完整 JDK 21**（需含 jlink；不支持 Java 25，精简版 JRE 不可用）
+- Android SDK（compileSdk 36、build-tools 36.0.0、platform-tools、CMake 3.22.1）
 - Android Studio / VS Code
 - Git版本控制
+- Windows 首次构建需开启系统"开发者模式"（符号链接支持）
 
 ### 运行环境
-- Android 8.0+（支持NFC功能）
+- Android 5.0+（NFC 功能建议 Android 8.0+）
 - iOS 12.0+（需要物理设备）
 - 支持NFC的移动设备
 
@@ -93,12 +95,20 @@ lib/
 ### 1. 环境准备
 ```bash
 # 克隆项目
-git clone https://github.com/yourusername/storage-assistant.git
-cd storage-assistant
+git clone https://github.com/joseph60/StorageAssistant.git
+cd StorageAssistant
 
 # 安装依赖
 flutter pub get
 ```
+
+> **国内网络**：建议先设置镜像环境变量
+> ```bash
+> # Windows PowerShell（用户级永久生效）
+> [Environment]::SetEnvironmentVariable('FLUTTER_STORAGE_BASE_URL','https://storage.flutter-io.cn','User')
+> [Environment]::SetEnvironmentVariable('PUB_HOSTED_URL','https://pub.flutter-io.cn','User')
+> ```
+> Gradle/Maven 镜像与 jcenter 清理已在工程中配置（见 [docs/技术实现文档.md](docs/技术实现文档.md) "问题6"）。
 
 ### 2. 平台初始化
 ```bash
@@ -108,8 +118,11 @@ flutter create .
 
 ### 3. 运行应用
 ```bash
-# 连接设备后运行
+# 连接设备后运行（先在手机上开启 USB 调试并授权）
 flutter run
+
+# 或先构建再安装
+flutter build apk --debug
 
 # 构建发布版本
 flutter build apk --release    # Android
@@ -138,14 +151,20 @@ flutter build ios --release    # iOS
 - 支持物品、标签和媒体的关系管理
 - 提供完整的数据操作接口
 
+### 近期修复（v1.1，2026-10）
+- **滑动操作目标一致性**：物品详情页左右滑动切换后，修改/取出现在准确作用于当前展示物品（此前会误操作最初打开的物品）
+- **容器删除/更新可靠性**：统一以 NFC 标签 ID（tagId）作为标签业务主键并按其匹配，修复部分容器删除、重命名与"清除所有数据"静默失败的问题
+- **构建链升级**：适配 Flutter 3.47（Kotlin 2.2.20、完整 JDK 21），内置国内镜像与 jcenter 清理
+
 ## 📖 详细文档
 
 文档存放在 `docs/` 目录下：
+- [架构说明书（精简概览）](架构说明书.md) - 当前实现的架构速览
 - [用户操作手册](docs/用户操作手册.md) - 完整的使用指南
 - [系统设计文档](docs/系统设计文档.md) - 系统架构和设计说明
 - [需求规格说明书](docs/需求规格说明书.md) - 功能需求分析
 - [项目架构说明书](docs/项目架构说明书.md) - 技术架构详解
-- [技术实现文档](docs/技术实现文档.md) - 技术细节说明
+- [技术实现文档](docs/技术实现文档.md) - 技术细节与问题排查
 
 ## 🤝 贡献指南
 

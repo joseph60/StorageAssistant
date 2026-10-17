@@ -1,5 +1,9 @@
 enum MediaType { image, video }
 
+/// 媒体记录：用于在内存中描述一张图片 / 一段视频（含可选缩略图）。
+/// 当前实现中媒体路径直接写在 items 表的 imagePath / videoPath 字段里，
+/// 此模型主要作为 MediaService 与调用方之间的数据传输对象，
+/// 不再对应独立的 media 数据表（该表已在 database_service 中移除）。
 class MediaRecord {
   final String? id;
   final String filePath;
@@ -23,16 +27,6 @@ class MediaRecord {
       'thumbnailPath': thumbnailPath,
       'createdAt': createdAt.toIso8601String(),
     };
-  }
-
-  factory MediaRecord.fromMap(Map<String, dynamic> map) {
-    return MediaRecord(
-      id: map['id'] as String?,
-      filePath: map['filePath'] as String,
-      type: MediaType.values[map['type'] as int],
-      thumbnailPath: map['thumbnailPath'] as String?,
-      createdAt: DateTime.parse(map['createdAt'] as String),
-    );
   }
 
   MediaRecord copyWith({

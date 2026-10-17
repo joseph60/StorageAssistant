@@ -160,42 +160,74 @@ class MediaService {
       final uuidFileName = await _generateUuidFileName('mp4');
       final destPath = '$videoDir/$uuidFileName';
 
-      final info = await VideoCompress.compressVideo(
-        sourcePath,
-        quality: VideoQuality.MediumQuality,
-        deleteOrigin: false,
-        includeAudio: true,
-      );
+      MediaRecord? record;
 
-      if (info == null || info.file == null) return null;
+      try {
+        final info = await VideoCompress.compressVideo(
+          sourcePath,
+          quality: VideoQuality.MediumQuality,
+          deleteOrigin: false,
+          includeAudio: true,
+        );
 
-      await info.file!.copy(destPath);
+        if (info != null && info.file != null) {
+          // 压缩成功：用压缩后的文件作为最终视频
+          await info.file!.copy(destPath);
 
-      String? thumbnailPath;
-      final thumbnailDir = await _getThumbnailDirectory();
-      final thumbFileName = await _generateUuidFileName('jpg');
-      thumbnailPath = '$thumbnailDir/$thumbFileName';
+          String? thumbnailPath;
+          final thumbnailDir = await _getThumbnailDirectory();
+          final thumbFileName = await _generateUuidFileName('jpg');
+          thumbnailPath = '$thumbnailDir/$thumbFileName';
 
-      final thumbnail = await VideoThumbnail.thumbnailFile(
-        video: destPath,
-        thumbnailPath: thumbnailDir,
-        imageFormat: ImageFormat.JPEG,
-        maxHeight: 200,
-        quality: 75,
-      );
+          final thumbnail = await VideoThumbnail.thumbnailFile(
+            video: destPath,
+            thumbnailPath: thumbnailDir,
+            imageFormat: ImageFormat.JPEG,
+            maxHeight: 200,
+            quality: 75,
+          );
 
-      if (thumbnail != null) {
-        await File(thumbnail).copy(thumbnailPath);
-        await File(thumbnail).delete();
+          if (thumbnail != null) {
+            await File(thumbnail).copy(thumbnailPath);
+            await File(thumbnail).delete();
+          }
+
+          record = MediaRecord(
+            id: uuidFileName.split('.').first,
+            filePath: destPath,
+            type: MediaType.video,
+            thumbnailPath: thumbnailPath,
+            createdAt: DateTime.now(),
+          );
+        } else {
+          // 压缩失败但源文件存在：回退为直接复制原文件，
+          // 保证用户至少保留一份可播放的视频
+          final sourceFile = File(sourcePath);
+          if (await sourceFile.exists()) {
+            await sourceFile.copy(destPath);
+            record = MediaRecord(
+              id: uuidFileName.split('.').first,
+              filePath: destPath,
+              type: MediaType.video,
+              createdAt: DateTime.now(),
+            );
+          }
+        }
+      } catch (_) {
+        // 压缩过程抛异常时同样回退复制原文件
+        final sourceFile = File(sourcePath);
+        if (await sourceFile.exists()) {
+          await sourceFile.copy(destPath);
+          record = MediaRecord(
+            id: uuidFileName.split('.').first,
+            filePath: destPath,
+            type: MediaType.video,
+            createdAt: DateTime.now(),
+          );
+        }
       }
 
-      return MediaRecord(
-        id: uuidFileName.split('.').first,
-        filePath: destPath,
-        type: MediaType.video,
-        thumbnailPath: thumbnailPath,
-        createdAt: DateTime.now(),
-      );
+      return record;
     } catch (e) {
       return null;
     }
