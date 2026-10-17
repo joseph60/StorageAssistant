@@ -69,6 +69,36 @@ class _ContainerListPageState extends State<ContainerListPage> {
     }
   }
 
+  void _showRenameDialog(TagRecord container) async {
+    final inputController = TextEditingController(text: container.tagName);
+    final newName = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('重命名容器'),
+        content: TextField(
+          controller: inputController,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: '容器名称'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, null),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, inputController.text.trim()),
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
+
+    if (newName != null && newName.isNotEmpty && newName != container.tagName) {
+      await _dataManager.updateTagName(container.tagId, newName);
+      _loadContainers();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -168,6 +198,10 @@ class _ContainerListPageState extends State<ContainerListPage> {
                       ),
                     ],
                   ),
+                ),
+                IconButton(
+                  onPressed: () => _showRenameDialog(container),
+                  icon: const Icon(Icons.edit, color: Colors.blue),
                 ),
                 IconButton(
                   onPressed: () => _showDeleteConfirmDialog(container),

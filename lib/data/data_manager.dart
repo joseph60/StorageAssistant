@@ -213,15 +213,18 @@ class DataManager {
   }
 
   Future<void> deleteItem(String id) async {
+    // 先删数据库记录（失败则直接中止，保留媒体文件等待人工处理），
+    // 再删媒体文件（失败可被 cleanOrphanedMedia 兜底）。
+    // 原顺序是"先删媒体再删记录"，媒体删除失败会导致孤儿文件残留。
     final item = await _db.getItemById(id);
     if (item != null) {
+      await _db.deleteItem(id);
       if (item.imagePath != null) {
         await _media.deleteMediaFile(item.imagePath!);
       }
       if (item.videoPath != null) {
         await _media.deleteMediaFile(item.videoPath!);
       }
-      await _db.deleteItem(id);
     }
   }
 

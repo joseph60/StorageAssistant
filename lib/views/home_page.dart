@@ -396,10 +396,40 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       valueListenable: result,
       builder: (context, value, _) {
         if (value == null || !value.containsKey('items')) {
+          // 空态引导：首次启动 / 未贴近任何标签时，提示用户如何使用
           return Center(
-            child: Text(
-              _isNfcAvailable ? '等待操作' : '请贴近标签',
-              style: TextStyle(color: Colors.grey.shade600),
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.nfc,
+                    size: 64,
+                    color: Colors.blue.shade400,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    _isNfcAvailable ? '等待操作' : '设备不支持 NFC',
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    '将 NFC 标签贴近手机背面即可识别容器',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                  if (_isNfcAvailable) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      '贴近新标签时可为其命名',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                    ),
+                  ],
+                ],
+              ),
             ),
           );
         }
@@ -407,9 +437,21 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         List items = value['items'] ?? [];
         if (items.isEmpty) {
           return Center(
-            child: Text(
-              '没有存放记录',
-              style: TextStyle(color: Colors.grey.shade600),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.inventory_2, size: 48, color: Colors.grey.shade400),
+                const SizedBox(height: 12),
+                const Text(
+                  '这个容器还没有存放任何物品',
+                  style: TextStyle(color: Colors.grey),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '点击下方的"存入物品"按钮开始添加',
+                  style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                ),
+              ],
             ),
           );
         }
