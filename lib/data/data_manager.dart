@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:nfc_manager/nfc_manager.dart';
 import 'package:uuid/uuid.dart';
 import '../models/tag_record.dart';
@@ -269,5 +271,31 @@ class DataManager {
       await tx.rawDelete('DELETE FROM tags');
     });
     await cleanOrphanedMedia();
+  }
+
+  /// 获取数据库文件路径。先确保数据库已初始化，保证文件存在（用于备份）。
+  Future<String> getDatabasePath() async {
+    await _db.database;
+    return await _db.getDatabasePath();
+  }
+
+  /// 用 [sourcePath] 指向的备份文件覆盖当前数据库。
+  /// 覆盖前先校验 SQLite 文件头，并关闭当前数据库连接；
+  /// DatabaseService 下次访问时会自动重新打开新数据库。
+  Future<void> restoreDatabase(String sourcePath) async {
+    final source = File(sourcePath);
+    // SQLite 文件头固定为 "SQLite format 3\0"（16 字节），
+    // 防止用非数据库文件覆盖导致数据层损坏
+    final raf = await source.open();
+    final header = await raf.read(16);
+    await raf.close();
+    if (header.length < 16 ||
+        String.fromCharCodes(header.sublist(0, 15)) != 'SQLite format 3') {
+      throw Exception('所选文件不是有效的 SQLite 数据库');
+    }
+
+    final dbPath = await _db.getDatabasePath();
+    await _db.close();
+    await source.copy(dbPath);
   }
 }

@@ -1,4 +1,8 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../data/data_manager.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -105,6 +109,97 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
+  Future<void> _backupDatabase() async {
+    try {
+      final dbPath = await _dataManager.getDatabasePath();
+      final bytes = await File(dbPath).readAsBytes();
+      final fileName =
+          'storage_assistant_backup_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.db';
+      final result = await FilePicker.saveFile(
+        dialogTitle: '选择备份保存位置',
+        fileName: fileName,
+        bytes: bytes,
+      );
+
+      if (result != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('数据库备份成功')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('备份失败：$e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _restoreDatabase() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('数据库恢复'),
+        content: const Text('恢复将用备份文件覆盖当前所有数据，且不可撤销。建议先备份当前数据库。\n\n确定要继续吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    final picked = await FilePicker.pickFile(
+      dialogTitle: '选择数据库备份文件',
+      type: FileType.any,
+    );
+    if (!mounted) return;
+    final path = picked?.path;
+    if (path == null) return;
+
+    if (!path.toLowerCase().endsWith('.db')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请选择 .db 数据库备份文件')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      await _dataManager.restoreDatabase(path);
+      await _loadStorageSize();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('数据库恢复成功，建议重启应用以完全刷新')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('恢复失败：$e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -137,6 +232,18 @@ class _SettingsPageState extends State<SettingsPage> {
                 _buildSection(
                   title: '数据管理',
                   children: [
+                    ListTile(
+                      leading: const Icon(Icons.backup),
+                      title: const Text('数据库备份'),
+                      subtitle: const Text('导出数据库到本地文件'),
+                      onTap: _backupDatabase,
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.restore),
+                      title: const Text('数据库恢复'),
+                      subtitle: const Text('导入备份文件，覆盖当前数据'),
+                      onTap: _restoreDatabase,
+                    ),
                     ListTile(
                       leading: const Icon(Icons.delete_forever, color: Colors.red),
                       title: const Text('清除所有数据'),

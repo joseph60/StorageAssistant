@@ -10,6 +10,10 @@ class DatabaseService {
 
   Database? _database;
 
+  Future<String> getDatabasePath() async {
+    return join(await getDatabasesPath(), 'storage_assistant.db');
+  }
+
   Future<Database> get database async {
     if (_database != null) return _database!;
     _database = await _initDatabase();
@@ -17,7 +21,7 @@ class DatabaseService {
   }
 
   Future<Database> _initDatabase() async {
-    String path = join(await getDatabasesPath(), 'storage_assistant.db');
+    String path = await getDatabasePath();
     final db = await openDatabase(
       path,
       version: 1,
@@ -184,8 +188,10 @@ class DatabaseService {
   }
 
   Future<void> close() async {
-    final db = await database;
-    await db.close();
-    _database = null;
+    final db = _database;
+    if (db != null) {
+      await db.close();
+      _database = null;
+    }
   }
 }
