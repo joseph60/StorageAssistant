@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:nfc_manager/nfc_manager.dart';
 import 'package:nfc_manager/src/platform_tags/ndef_formatable.dart';
 import 'dart:convert';
@@ -44,6 +45,9 @@ class NfcService {
         invalidateAfterFirstRead: true,
       );
     } catch (e) {
+      // 不能静默吞掉：原生开启失败时读卡器模式未开启，
+      // 贴标签只会弹系统提示，必须留日志便于定位。
+      debugPrint('[NFC] startSession 失败: $e');
       _isSessionStarted = false;
       _lastTag = null;
     }
@@ -56,7 +60,9 @@ class NfcService {
           alertMessage: alertMessage,
           errorMessage: errorMessage,
         );
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('[NFC] stopSession 失败: $e');
+      }
       _isSessionStarted = false;
     }
   }

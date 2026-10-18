@@ -231,12 +231,11 @@ class _SettingsPageState extends State<SettingsPage> {
   ///   效果相同但需自行维护通道代码，一般无必要。
   Future<void> _restartApp() async {
     // 导航前先停掉旧首页持有的 NFC 会话并等待完成。
-    // 否则旧首页 dispose 的 stopSession（未 await）与新首页 initState 的
-    // startSession 存在竞态：新首页 startSession 检查时旧 stop 尚未完成，
-    // _isSessionStarted 仍为 true 被守卫直接跳过，随后旧 stop 生效，
-    // 最终读卡器模式被关闭且无人重启——贴标签时系统弹出"发现NFC标签"。
-    // 先 await 停会话后，旧 dispose 的 stopSession 因标志位已为 false
-    // 而空转（NfcService.stopSession 内有守卫），不再产生竞争。
+    // 这里停会话的作用是解除原生读卡器模式和旧首页的 onDiscovered 回调，
+    // 让新首页 initState 的 startSession 能以干净状态重新开启会话。
+    // 注意：旧首页的 dispose 在新首页入场动画结束后才执行（约 300ms 后），
+    // 因此 home_page 的 dispose 里绝不能再调 stopSession——那时新会话
+    // 已经启动，旧 stop 会误杀新会话（logcat 已证实该时序）。
     await _dataManager.stopNfcSession();
     if (!mounted) return;
     Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(

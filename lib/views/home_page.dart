@@ -69,7 +69,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _nfcService.stopSession();
+    // 注意：这里不能调用 _nfcService.stopSession()。
+    // pushAndRemoveUntil 换页时，旧首页的 dispose 会在新首页入场动画
+    // 结束后（约 300ms）才执行，那时新首页的 NFC 会话已经启动，
+    // 旧 dispose 里的 stopSession 会把新会话一起停掉，导致贴标签时
+    // 只剩系统弹窗。会话停止由 didChangeAppLifecycleState（paused/
+    // detached）和设置页软重启前显式 await 的 stopNfcSession 负责。
     super.dispose();
   }
 
