@@ -200,7 +200,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         );
 
-        if (mounted) _restartApp();
+        if (mounted) await _restartApp();
       }
     } catch (e) {
       if (mounted) {
@@ -229,7 +229,16 @@ class _SettingsPageState extends State<SettingsPage> {
   ///   System.exit(0)。体验等同冷启动，但 iOS 不支持（无进程自杀 API）。
   /// 方案C：自写 MethodChannel，在 MainActivity 实现与方案B相同的原生逻辑，
   ///   效果相同但需自行维护通道代码，一般无必要。
-  void _restartApp() {
+  Future<void> _restartApp() async {
+    // 导航前先停掉旧首页持有的 NFC 会话并等待完成。
+    // 否则旧首页 dispose 的 stopSession（未 await）与新首页 initState 的
+    // startSession 存在竞态：新首页 startSession 检查时旧 stop 尚未完成，
+    // _isSessionStarted 仍为 true 被守卫直接跳过，随后旧 stop 生效，
+    // 最终读卡器模式被关闭且无人重启——贴标签时系统弹出"发现NFC标签"。
+    // 先 await 停会话后，旧 dispose 的 stopSession 因标志位已为 false
+    // 而空转（NfcService.stopSession 内有守卫），不再产生竞争。
+    await _dataManager.stopNfcSession();
+    if (!mounted) return;
     Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const HomePage()),
       (route) => false,
