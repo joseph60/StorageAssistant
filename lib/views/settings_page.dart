@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../data/data_manager.dart';
+import 'home_page.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -178,12 +179,28 @@ class _SettingsPageState extends State<SettingsPage> {
 
     try {
       await _dataManager.restoreDatabase(path);
-      await _loadStorageSize();
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('数据库恢复成功，建议重启应用以完全刷新')),
+        setState(() {
+          _isLoading = false;
+        });
+
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            title: const Text('恢复成功'),
+            content: const Text('数据库已恢复，应用将重新启动以完全刷新数据。'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('确定'),
+              ),
+            ],
+          ),
         );
+
+        if (mounted) _restartApp();
       }
     } catch (e) {
       if (mounted) {
@@ -198,6 +215,25 @@ class _SettingsPageState extends State<SettingsPage> {
         });
       }
     }
+  }
+
+  /// 软重启应用：清空路由栈并重建首页，让所有页面重新查询数据库。
+  ///
+  /// 恢复数据库后"重启 APP"共有 3 种实现思路：
+  /// 方案A（当前采用）：软重启——清路由栈 / 重建 widget 树。纯 Dart 实现，
+  ///   无平台限制、无需权限，Android/iOS 行为一致。数据库连接已由
+  ///   DataManager.restoreDatabase 重置（下次访问自动打开新库），
+  ///   软重启只需让各页面重建并重新查库即可完全刷新。
+  /// 方案B：真重启进程——使用 restart_app 插件（Restart.restartApp()），
+  ///   原生侧通过 AlarmManager + PendingIntent 延迟拉起启动 Intent 后
+  ///   System.exit(0)。体验等同冷启动，但 iOS 不支持（无进程自杀 API）。
+  /// 方案C：自写 MethodChannel，在 MainActivity 实现与方案B相同的原生逻辑，
+  ///   效果相同但需自行维护通道代码，一般无必要。
+  void _restartApp() {
+    Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const HomePage()),
+      (route) => false,
+    );
   }
 
   @override
