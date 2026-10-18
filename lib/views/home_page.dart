@@ -56,7 +56,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   }
 
   Future<void> _checkNfcAndStart() async {
-    _isNfcAvailable = await _nfcService.isNfcAvailable();
+    final available = await _nfcService.isNfcAvailable();
+    if (!mounted) return;
+    setState(() => _isNfcAvailable = available);
     if (_isNfcAvailable) {
       _startNfcSession();
     } else {
